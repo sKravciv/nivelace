@@ -1,0 +1,129 @@
+﻿Option Explicit
+
+Public Sub nivelace()
+Dim wb As Workbook
+Dim ws As Worksheet
+Dim RI As Long
+Dim LI As Long
+Dim krok As Long
+Dim ZAP As Long
+Dim pocet As Long
+Dim bocne As Range
+Dim vpred As Range
+Dim vzad As Range
+Dim rozpocet As Range
+Dim cell As Range
+Dim prestav As Currency
+Dim vychozi As Currency
+Dim koncovy As Currency
+Dim odchylka As Currency
+Dim vzdalenost As Currency
+Dim odchylkapov As Currency
+Dim vyska As Currency
+
+Set wb = ThisWorkbook
+Set ws = zapisnik
+LI = 6
+Do While ws.Cells(LI, 1) <> 0
+    LI = LI + 1
+Loop
+
+vzdalenost = ws.Cells(6, 14)
+vychozi = ws.Cells(6, 9)
+koncovy = ws.Cells(LI - 1, 9)
+prestav = vychozi - koncovy
+
+Set vpred = ws.Range(ws.Cells(6, 6), ws.Cells(LI, 6))
+Set vzad = ws.Range(ws.Cells(6, 4), ws.Cells(LI, 4))
+Set bocne = ws.Range(ws.Cells(6, 7), ws.Cells(LI, 7))
+Set rozpocet = ws.Range(ws.Cells(6, 5), ws.Cells(LI, 5))
+krok = Application.WorksheetFunction.CountIf(vzad, ">0")
+
+ws.Cells(LI + 2, 4) = Application.WorksheetFunction.Sum(vzad)
+ws.Cells(LI + 2, 6) = Application.WorksheetFunction.Sum(vpred)
+
+odchylka = ws.Cells(LI + 2, 4) - ws.Cells(LI + 2, 6)
+ws.Cells(LI + 3, 6).Value = CStr(odchylka)
+odchylkapov = Round(40 * Sqr(vzdalenost), 3)
+
+ws.Cells(LI + 2, 11).Value = "H = " & ws.Cells(LI + 3, 6).Value
+ws.Cells(LI + 3, 11).Value = "h = " & CStr(prestav)
+ws.Cells(LI + 4, 11).Value = ChrW(916) & " = " & CStr(odchylkapov) & " mm"
+
+If odchylka = 0 Then
+GoTo Vypocetnula
+End If
+
+If odchylka < 0 Then
+   odchylka = odchylka * -1
+   ZAP = 1
+End If
+
+If odchylkapov < odchylka * 1000 Then
+ MsgBox ("Chybně provedené měření, odchylka je vyšší než povolená")
+ GoTo Errhand
+End If
+
+If ZAP = 1 Then
+    odchylka = odchylka * -1
+End If
+
+GoTo Rozdeleni
+
+Rozdeleni:
+odchylka = odchylka * -1
+If odchylka < 0 Then
+krok = (odchylka * -1000)
+Else
+krok = (odchylka * 1000)
+End If
+
+RI = 6
+pocet = krok
+rozpocet.ClearContents
+
+Do While pocet <> 0
+    If ws.Cells(RI, 4).Value > 0 Then
+         ws.Cells(RI, 5).Value = ws.Cells(RI, 5).Value + (odchylka / krok)
+         pocet = pocet - 1
+    End If
+    If RI >= LI - 1 Then
+    RI = 6
+    Else
+    RI = RI + 1
+    End If
+Loop
+
+GoTo Vypocet
+
+
+Vypocet:
+RI = 6
+vyska = vychozi + ws.Cells(RI, 4) + ws.Cells(RI, 5) - ws.Cells(RI, 6)
+
+Do
+    RI = RI + 1
+    vyska = vyska + ws.Cells(RI, 4) + ws.Cells(RI, 5) - ws.Cells(RI, 6)
+Loop Until ws.Cells(RI + 1, 3) <> ""
+GoTo Konec
+
+ws.Cells(RI, 8) = CStr(vyska)
+
+Vypocetnula:
+If odchylka = 0 Then
+    vyska = vychozi
+End If
+
+For Each cell In bocne
+ If cell.Value > 0 Then
+    ws.Range("J" & cell.Row).Value = CStr(Round(vyska - cell.Value, 3))
+ End If
+Next cell
+
+Konec:
+MsgBox ("Nivelace úspěšně vypočtena")
+
+Errhand:
+
+
+End Sub
